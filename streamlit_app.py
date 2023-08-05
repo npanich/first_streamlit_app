@@ -24,7 +24,7 @@ fruits_to_show = my_fruit_list.loc[fruits_selected]
 streamlit.dataframe(fruits_to_show)
 
 # New section to display Fruityvice API response
-streamlit.header("Fruityvice Fruit Advice!")
+streamlit.header("View our fruit list - Add your favorites!")
 
 def get_fruityvice_data (this_fruit_choice):
     # streamlit.write('The user entered ', this_fruit_choice)
@@ -40,23 +40,36 @@ try:
   else:
     back_from_function = get_fruityvice_data(fruit_choice)
     streamlit.dataframe(back_from_function)
-
 except URLError as e:
   streamlit.error
 
-streamlit.stop()
-# do not run anything until fixed
-my_cnx = snowflake.connector.connect(**streamlit.secrets["snowflake"])
-my_cur = my_cnx.cursor()
-# my_cur.execute("SELECT CURRENT_USER(), CURRENT_ACCOUNT(), CURRENT_REGION()")
-my_cur.execute("select * from fruit_load_list")
-my_data_rows = my_cur.fetchall()
-# streamlit.text("Hello from Snowflake:")
-streamlit.text("The fruit load list contains:")
-streamlit.dataframe(my_data_rows)
+# Snowflake-related functions
+def get_fruit_load_list():
+    with my_cnx.cursor() as my_cur
+        # my_cur.execute("SELECT CURRENT_USER(), CURRENT_ACCOUNT(), CURRENT_REGION()")
+        my_cur.execute("select * from fruit_load_list")
+        return my_cur.fetchall()
+
+# add a button to load the fruit
+if streamlit.button('Get fruit load list'):
+    my_cnx = snowflake.connector.connect(**streamlit.secrets["snowflake"])
+    my_data_rows = get_fruit_load_list()
+    my_cnx.close()
+    streamlit.dataframe(my_data_rows)
+
+def insert_row_snowflake(new_fruit):
+    with my_cns.cursor() as my_cur:
+        my_cur.execute("insert into fruit_load_list ('" + new_fruit + "')")
+        return 'Thanks for adding ' + new_fruit
 
 fruit_insert = streamlit.text_input('What fruit would you like to add?','user choice')
-streamlit.text(fruit_insert)
+if streamlit.button('Add a fruit to the list'):
+    my_cnx = snowflake.connector.connect(**streamlit.secrets["snowflake"])
+    back_from_function = insert_row_snowflake(fruit_insert)
+    my_cnx.close()
+    streamlit.text(back_from_function)
+
+streamlit.stop()
 cur_fruit_insert = my_cnx.cursor()
 cur_fruit_insert.execute('insert into fruit_load_list (fruit_name) values (' + fruit_insert + ');')
 streamlit.text("Thanks for adding" + fruit_insert)
